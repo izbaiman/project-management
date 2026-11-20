@@ -32,6 +32,26 @@ function Ring({ pct, color }) {
   )
 }
 
+function BoardTile({ p, showDept }) {
+  const pct = p.task_count ? Math.round((p.done_count / p.task_count) * 100) : 0
+  return (
+    <Link className="dash-tile" to={`/projects/${p.id}/board`} style={{ '--tile': p.color }}>
+      <div className="dash-tile-top">
+        <span className="dash-tile-key">{p.key}</span>
+        <Ring pct={pct} color={p.color} />
+      </div>
+      <div className="dash-tile-name truncate">{p.name}</div>
+      {showDept && <div className="tiny muted truncate">{p.department || 'Cross-department'}</div>}
+      <div className="dash-tile-foot">
+        <span className="tiny muted">{p.done_count} of {p.task_count} done</span>
+        {p.lead_name && (
+          <span title={`Lead: ${p.lead_name}`}><Avatar name={p.lead_name} color={p.lead_color} /></span>
+        )}
+      </div>
+    </Link>
+  )
+}
+
 const VERBS = {
   'task.moved': 'moved',
   'task.assigned': 'assigned',
@@ -41,7 +61,7 @@ const VERBS = {
 
 export function Dashboard() {
   const { user, canManage } = useAuth()
-  const { projects, employees } = useOutletContext()
+  const { projects, employees, newProject } = useOutletContext()
   const navigate = useNavigate()
   const [stats, setStats] = useState(null)
   const [error, setError] = useState('')
@@ -62,7 +82,9 @@ export function Dashboard() {
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
   const today = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
   const maxLoad = Math.max(...stats.byDepartment.map(x => x.count), 1)
-  const home = projects.find(p => p.name === user.department)
+  const departments = projects.filter(p => p.kind === 'department')
+  const realProjects = projects.filter(p => p.kind !== 'department')
+  const home = departments.find(p => p.name === user.department)
 
   return (
     <div className="main">
@@ -94,7 +116,9 @@ export function Dashboard() {
 
           <div className="stat-grid">
             <StatCard icon="target" tone="accent" value={openTasks.length} label="Your open tasks" />
-            <StatCard icon="folder" tone="violet" value={projects.length} label="Active projects" />
+            <StatCard icon="folder" tone="violet" value={realProjects.length} label="Active projects">
+              <div className="tiny dim mt-4">{departments.length} department boards</div>
+            </StatCard>
             <StatCard icon="users" tone="teal" value={employees.length} label="People" />
             <StatCard icon="trend" tone="success" value={`${donePct}%`} label={`${totalDone} of ${totalTasks} tasks done`}>
               <div className="bar-track mt-8"><div className="bar-fill bar-success" style={{ width: `${donePct}%` }} /></div>
@@ -132,28 +156,44 @@ export function Dashboard() {
               <section className="panel">
                 <div className="panel-head">
                   <Icon name="folder" size={16} /> Projects
-                  <span className="panel-count">{projects.length}</span>
+                  <span className="panel-count">{realProjects.length}</span>
+                  {canManage && realProjects.length > 0 && (
+                    <button className="btn btn-sm" onClick={newProject}>
+                      <Icon name="plus" size={14} /> New project
+                    </button>
+                  )}
+                </div>
+                {realProjects.length === 0 ? (
+                  <div className="dash-empty">
+                    <span className="empty-icon"><Icon name="folder" size={20} /></span>
+                    <div style={{ flex: 1 }}>
+                      <div className="empty-title">No projects yet</div>
+                      <div className="tiny muted">
+                        {canManage
+                          ? 'Create a project for a piece of work, give it a lead and a department.'
+                          : 'Projects your managers create will show up here.'}
+                      </div>
+                    </div>
+                    {canManage && (
+                      <button className="btn btn-primary btn-sm" onClick={newProject}>
+                        <Icon name="plus" size={14} /> New project
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="dash-projects">
+                    {realProjects.map(p => <BoardTile key={p.id} p={p} showDept />)}
+                  </div>
+                )}
+              </section>
+
+              <section className="panel">
+                <div className="panel-head">
+                  <Icon name="board" size={16} /> Departments
+                  <span className="panel-count">{departments.length}</span>
                 </div>
                 <div className="dash-projects">
-                  {projects.map(p => {
-                    const pct = p.task_count ? Math.round((p.done_count / p.task_count) * 100) : 0
-                    return (
-                      <Link className="dash-tile" key={p.id} to={`/projects/${p.id}/board`}
-                        style={{ '--tile': p.color }}>
-                        <div className="dash-tile-top">
-                          <span className="dash-tile-key">{p.key}</span>
-                          <Ring pct={pct} color={p.color} />
-                        </div>
-                        <div className="dash-tile-name truncate">{p.name}</div>
-                        <div className="dash-tile-foot">
-                          <span className="tiny muted">{p.done_count} of {p.task_count} done</span>
-                          {p.lead_name && (
-                            <span title={`Lead: ${p.lead_name}`}><Avatar name={p.lead_name} color={p.lead_color} /></span>
-                          )}
-                        </div>
-                      </Link>
-                    )
-                  })}
+                  {departments.map(p => <BoardTile key={p.id} p={p} />)}
                 </div>
               </section>
             </div>

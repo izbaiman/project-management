@@ -157,8 +157,8 @@ export function seed({ force = false, verbose = true } = {}) {
   // ---- One project per department -------------------------------------------
   const depts = [...deptSet].sort()
   const insertProject = db.prepare(`
-    INSERT INTO projects (key, name, description, lead_id, color, position)
-    VALUES (?, ?, ?, ?, ?, ?)`)
+    INSERT INTO projects (key, name, description, lead_id, color, position, kind, department)
+    VALUES (?, ?, ?, ?, ?, ?, 'department', ?)`)
   const insertColumn = db.prepare(`
     INSERT INTO board_columns (project_id, name, position, wip_limit, is_done)
     VALUES (?, ?, ?, ?, ?)`)
@@ -183,7 +183,7 @@ export function seed({ force = false, verbose = true } = {}) {
 
     const lead = findLead.get(dept)
     const info = insertProject.run(
-      key, dept, `${dept} team workspace`, lead?.id ?? null, meta.color, pos,
+      key, dept, `${dept} team workspace`, lead?.id ?? null, meta.color, pos, dept,
     )
     const projectId = Number(info.lastInsertRowid)
     pos += GAP
@@ -198,7 +198,7 @@ export function seed({ force = false, verbose = true } = {}) {
     insertSprint.run(projectId, `${key} Sprint 1`, `First sprint for ${dept}`, 'active', GAP)
     insertSprint.run(projectId, `${key} Sprint 2`, null, 'planned', GAP * 2)
   }
-  log(`Created ${projectCount} projects, each with 5 columns and 2 sprints`)
+  log(`Created ${projectCount} department boards, each with 5 columns and 2 sprints`)
 
   return { skipped: false, employees: empCount, projects: projectCount }
 }

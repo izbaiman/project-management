@@ -1366,3 +1366,8 @@ html, body { overflow-x: clip; }
   color: var(--team); background: color-mix(in srgb, var(--team) 13%, transparent);
   display: inline-flex; align-items: center; gap: 3px;
 }
+
+/* ---- Dashboard: projects vs department boards ---- */
+.mt-4 { margin-top: 4px; }
+.dash-empty { flex-wrap: wrap; }
+.dash-tile .tiny.truncate { margin-top: -4px; }

@@ -111,6 +111,24 @@ CREATE INDEX IF NOT EXISTS idx_comments_task  ON comments(task_id);
 CREATE INDEX IF NOT EXISTS idx_activity_task  ON activity(task_id);
 `)
 
+// ---- Department boards vs projects --------------------------------------------
+// kind 'department' = the standing board every department gets;
+// kind 'project'    = a piece of work a manager / admin / super admin creates.
+// `department` on a project says which department owns it (optional).
+{
+  const cols = db.prepare('PRAGMA table_info(projects)').all().map(c => c.name)
+  if (!cols.includes('kind')) {
+    db.exec("ALTER TABLE projects ADD COLUMN kind TEXT NOT NULL DEFAULT 'project'")
+    // Boards created before this column existed were the per-department boards.
+    db.exec(`UPDATE projects SET kind = 'department'
+             WHERE name IN (SELECT DISTINCT department FROM employees WHERE department IS NOT NULL)`)
+  }
+  if (!cols.includes('department')) {
+    db.exec('ALTER TABLE projects ADD COLUMN department TEXT')
+    db.exec("UPDATE projects SET department = name WHERE kind = 'department'")
+  }
+}
+
 // ---- Teams -------------------------------------------------------------------
 // Small working groups inside the org. A manager can run several teams; each
 // team can have a lead. Managers in turn sit under the super admin(s).

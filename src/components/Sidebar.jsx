@@ -46,13 +46,8 @@ function ProjectRow({ project, canManage }) {
   )
 }
 
-export function Sidebar({ projects, setProjects, onNewProject, open = false, onClose = () => {} }) {
-  const { canManage } = useAuth()
-  const { projectId } = useParams()
-  const { pathname } = useLocation()
-
-  // On small screens the sidebar is a drawer: close it whenever the page changes.
-  useEffect(() => { onClose() }, [pathname]) // eslint-disable-line react-hooks/exhaustive-deps
+/** One sortable list in the sidebar (department boards, or projects). */
+function ProjectGroup({ title, items, projects, setProjects, canManage, action, empty }) {
   const toast = useToast()
   const sensors = useDragSensors()
   const [dragging, setDragging] = useState(null)
@@ -63,10 +58,10 @@ export function Sidebar({ projects, setProjects, onNewProject, open = false, onC
 
     const fromId = numericId(active.id)
     const toId = numericId(over.id)
-    const rest = projects.filter(p => p.id !== fromId)
+    const rest = items.filter(p => p.id !== fromId)
     const overIndex = rest.findIndex(p => p.id === toId)
     const movingDown =
-      projects.findIndex(p => p.id === fromId) < projects.findIndex(p => p.id === toId)
+      items.findIndex(p => p.id === fromId) < items.findIndex(p => p.id === toId)
     const { beforeId, afterId, position } = neighboursAt(rest, movingDown ? overIndex + 1 : overIndex)
 
     const snapshot = projects
@@ -82,8 +77,55 @@ export function Sidebar({ projects, setProjects, onNewProject, open = false, onC
     }
   }
 
+  return (
+    <div className="sidebar-section">
+      <div className="sidebar-title">
+        <span>{title}</span>
+        {action}
+      </div>
+
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={({ active }) =>
+          setDragging(items.find(p => p.id === numericId(active.id)) ?? null)}
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => setDragging(null)}
+      >
+        <SortableContext items={items.map(p => `proj-${p.id}`)} strategy={verticalListSortingStrategy}>
+          {items.map(p => <ProjectRow key={p.id} project={p} canManage={canManage} />)}
+        </SortableContext>
+
+        <DragOverlay dropAnimation={null}>
+          {dragging && (
+            <div className="project-row" style={{ background: 'var(--surface)', boxShadow: 'var(--shadow-lg)' }}>
+              <span className="project-dot" style={{ background: dragging.color }} />
+              <span className="project-name">{dragging.name}</span>
+              <span className="project-key">{dragging.key}</span>
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
+
+      {items.length === 0 && <p className="hint" style={{ padding: '6px 8px' }}>{empty}</p>}
+    </div>
+  )
+}
+
+const isDepartmentBoard = p => p.kind === 'department'
+
+export function Sidebar({ projects, setProjects, onNewProject, open = false, onClose = () => {} }) {
+  const { canManage } = useAuth()
+  const { projectId } = useParams()
+  const { pathname } = useLocation()
+
+  // On small screens the sidebar is a drawer: close it whenever the page changes.
+  useEffect(() => { onClose() }, [pathname]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const current = projectId ? projects.find(p => String(p.id) === String(projectId)) : null
   const navClass = ({ isActive }) => `nav-item${isActive ? ' active' : ''}`
+  const departments = projects.filter(isDepartmentBoard)
+  const realProjects = projects.filter(p => !isDepartmentBoard(p))
 
   return (
     <>
@@ -121,47 +163,29 @@ export function Sidebar({ projects, setProjects, onNewProject, open = false, onC
         </div>
       )}
 
-      <div className="sidebar-section">
-        <div className="sidebar-title">
-          <span>Projects</span>
-          {canManage && (
-            <button className="btn btn-ghost btn-icon btn-xs" onClick={onNewProject}
-              title="New project" aria-label="New project">
-              <Icon name="plus" size={15} />
-            </button>
-          )}
-        </div>
+      <ProjectGroup
+        title="Projects"
+        items={realProjects}
+        projects={projects}
+        setProjects={setProjects}
+        canManage={canManage}
+        empty={canManage ? 'No projects yet. Use + to create one.' : 'No projects yet.'}
+        action={canManage && (
+          <button className="btn btn-ghost btn-icon btn-xs" onClick={onNewProject}
+            title="New project" aria-label="New project">
+            <Icon name="plus" size={15} />
+          </button>
+        )}
+      />
 
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={({ active }) =>
-            setDragging(projects.find(p => p.id === numericId(active.id)) ?? null)}
-          onDragEnd={handleDragEnd}
-          onDragCancel={() => setDragging(null)}
-        >
-          <SortableContext
-            items={projects.map(p => `proj-${p.id}`)}
-            strategy={verticalListSortingStrategy}
-          >
-            {projects.map(p => (
-              <ProjectRow key={p.id} project={p} canManage={canManage} />
-            ))}
-          </SortableContext>
-
-          <DragOverlay dropAnimation={null}>
-            {dragging && (
-              <div className="project-row" style={{ background: 'var(--surface)', boxShadow: 'var(--shadow-lg)' }}>
-                <span className="project-dot" style={{ background: dragging.color }} />
-                <span className="project-name">{dragging.name}</span>
-                <span className="project-key">{dragging.key}</span>
-              </div>
-            )}
-          </DragOverlay>
-        </DndContext>
-
-        {projects.length === 0 && <p className="hint" style={{ padding: '6px 8px' }}>No projects yet.</p>}
-      </div>
+      <ProjectGroup
+        title="Departments"
+        items={departments}
+        projects={projects}
+        setProjects={setProjects}
+        canManage={canManage}
+        empty="No departments."
+      />
     </nav>
     </>
   )

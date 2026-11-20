@@ -98,7 +98,12 @@ function AccountMenu() {
 }
 
 function NewProjectModal({ employees, onClose, onCreated }) {
-  const [form, setForm] = useState({ name: '', key: '', description: '', leadId: '', color: '#6366f1' })
+  const { user } = useAuth()
+  const departments = [...new Set(employees.map(e => e.department).filter(Boolean))].sort()
+  const [form, setForm] = useState({
+    name: '', key: '', description: '', leadId: '', color: '#6366f1',
+    department: departments.includes(user.department) ? user.department : '',
+  })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -113,6 +118,7 @@ function NewProjectModal({ employees, onClose, onCreated }) {
         description: form.description.trim() || null,
         leadId: form.leadId ? Number(form.leadId) : null,
         color: form.color,
+        department: form.department || null,
       }))
     } catch (err) {
       setError(err.message)
@@ -156,6 +162,15 @@ function NewProjectModal({ employees, onClose, onCreated }) {
           <label htmlFor="p-desc">Description</label>
           <textarea id="p-desc" className="textarea" value={form.description}
             onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+        </div>
+        <div className="field">
+          <label htmlFor="p-dept">Department</label>
+          <select id="p-dept" className="select" value={form.department}
+            onChange={e => setForm(f => ({ ...f, department: e.target.value }))}>
+            <option value="">Cross-department</option>
+            {departments.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+          <span className="hint">The department that owns this project.</span>
         </div>
         <div className="field">
           <label htmlFor="p-lead">Project lead</label>
@@ -239,7 +254,7 @@ export function AppShell() {
           open={navOpen}
           onClose={() => setNavOpen(false)}
         />
-        <Outlet context={{ projects, setProjects, employees, reload: load }} />
+        <Outlet context={{ projects, setProjects, employees, reload: load, newProject: () => setCreatingProject(true) }} />
       </div>
 
       {creatingProject && (

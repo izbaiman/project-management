@@ -31,7 +31,10 @@ projectsRouter.get('/:id', (req, res) => {
   res.json(project)
 })
 
-/** POST /api/projects */
+/**
+ * POST /api/projects — managers, admins and super admins create projects.
+ * Department boards are made by the seed, never through this endpoint.
+ */
 projectsRouter.post('/', requireRole('admin', 'manager'), (req, res) => {
   const name = String(req.body?.name || '').trim()
   const key = String(req.body?.key || '').trim().toUpperCase()
@@ -46,13 +49,14 @@ projectsRouter.post('/', requireRole('admin', 'manager'), (req, res) => {
 
   const last = db.prepare('SELECT MAX(position) AS p FROM projects').get().p
   const info = db.prepare(`
-    INSERT INTO projects (key, name, description, lead_id, color, position)
-    VALUES (?, ?, ?, ?, ?, ?)`).run(
+    INSERT INTO projects (key, name, description, lead_id, color, position, kind, department)
+    VALUES (?, ?, ?, ?, ?, ?, 'project', ?)`).run(
     key, name,
     req.body.description || null,
     req.body.leadId || null,
     req.body.color || '#6366f1',
     (last ?? 0) + GAP,
+    String(req.body.department || '').trim() || null,
   )
   const projectId = Number(info.lastInsertRowid)
 
@@ -68,7 +72,7 @@ projectsRouter.post('/', requireRole('admin', 'manager'), (req, res) => {
 
 /** PATCH /api/projects/:id */
 projectsRouter.patch('/:id', requireRole('admin', 'manager'), (req, res) => {
-  const allowed = ['name', 'description', 'lead_id', 'color', 'archived']
+  const allowed = ['name', 'description', 'lead_id', 'color', 'archived', 'department']
   const sets = []
   const params = []
 
@@ -104,6 +108,8 @@ projectsRouter.patch('/:id/move', (req, res) => {
 
 /** DELETE /api/projects/:id — cascades to columns, sprints and tasks. */
 projectsRouter.delete('/:id', requireRole('admin'), (req, res) => {
+  const p = db.prepare('SELECT kind FROM projects WHERE id = ?').get(req.params.id)
+  if (p?.kind === 'department') return res.status(400).json({ error: 'Department boards can’t be deleted' })
   const info = db.prepare('DELETE FROM projects WHERE id = ?').run(req.params.id)
   if (!info.changes) return res.status(404).json({ error: 'Project not found' })
   res.json({ ok: true })
