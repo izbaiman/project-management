@@ -98,4 +98,20 @@ export const api = {
   deleteSprint: id => request('DELETE', `/sprints/${id}`),
 
   stats: () => request('GET', '/stats'),
+
+  updateEmployee: (id, body) => request('PATCH', `/employees/${id}`, body),
+
+  teams: () => request('GET', '/teams'),
+  createTeam: body => request('POST', '/teams', body),
+  teamsFromDepartments: () => request('POST', '/teams/from-departments'),
+  updateTeam: (id, body) => request('PATCH', `/teams/${id}`, body),
+  deleteTeam: id => request('DELETE', `/teams/${id}`),
+  moveToTeam: (employeeId, teamId) => request('PUT', `/teams/members/${employeeId}`, { teamId }),
+
+  evaluationMeta: () => request('GET', '/evaluations/meta'),
+  evaluationTeam: period => request('GET', `/evaluations/team${qs({ period })}`),
+  myEvaluations: () => request('GET', '/evaluations/mine'),
+  evaluation: (employeeId, period) => request('GET', `/evaluations/${employeeId}${qs({ period })}`),
+  saveEvaluation: (employeeId, period, body) =>
+    request('PUT', `/evaluations/${employeeId}${qs({ period })}`, body),
 }

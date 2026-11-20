@@ -30,7 +30,7 @@ const JWT_SECRET = resolveSecret()
 const TOKEN_TTL = process.env.TOKEN_TTL || '12h'
 
 export const PUBLIC_FIELDS =
-  'id, username, full_name, job_title, department, company, email, role, avatar_color, active'
+  'id, username, full_name, job_title, department, company, email, role, avatar_color, active, team_id'
 
 export function signToken(user) {
   return jwt.sign({ sub: user.id, role: user.role }, JWT_SECRET, { expiresIn: TOKEN_TTL })
@@ -55,11 +55,11 @@ export function requireAuth(req, res, next) {
   }
 }
 
-/** Express middleware factory: allows only the listed roles through. */
+/** Express middleware factory: allows only the listed roles (and super admins) through. */
 export function requireRole(...roles) {
   return (req, res, next) => {
     if (!req.user) return res.status(401).json({ error: 'Not authenticated' })
-    if (!roles.includes(req.user.role)) {
+    if (req.user.role !== 'super_admin' && !roles.includes(req.user.role)) {
       return res.status(403).json({ error: 'You do not have permission to do that' })
     }
     next()

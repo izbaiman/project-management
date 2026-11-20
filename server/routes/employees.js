@@ -2,6 +2,7 @@ import { Router } from 'express'
 import bcrypt from 'bcryptjs'
 import { db } from '../db.js'
 import { PUBLIC_FIELDS, requireRole } from '../auth.js'
+import { RANK, ROLES, canAdminister, maxGrantable } from '../roles.js'
 
 export const employeesRouter = Router()
 
@@ -50,8 +51,27 @@ employeesRouter.get('/:id', (req, res) => {
   res.json({ ...emp, workload })
 })
 
-/** PATCH /api/employees/:id — admins may change role / active / job details. */
+/**
+ * PATCH /api/employees/:id — admins change role / status / job details for
+ * people ranked below them, and may only hand out roles below their own
+ * (a super admin can appoint admins and other super admins).
+ */
 employeesRouter.patch('/:id', requireRole('admin'), (req, res) => {
+  const target = db.prepare(`SELECT ${PUBLIC_FIELDS} FROM employees WHERE id = ?`).get(req.params.id)
+  if (!target) return res.status(404).json({ error: 'Employee not found' })
+  if (!canAdminister(req.user, target)) {
+    return res.status(403).json({ error: target.id === req.user.id
+      ? 'You cannot change your own access'
+      : 'Only a higher-ranked admin can change this person' })
+  }
+  if (req.body.role !== undefined) {
+    const max = maxGrantable(req.user)
+    if (!ROLES.includes(req.body.role)) return res.status(400).json({ error: 'Unknown role' })
+    if (RANK[req.body.role] > RANK[max]) {
+      return res.status(403).json({ error: 'You cannot grant a role that high' })
+    }
+  }
+
   const allowed = ['full_name', 'job_title', 'department', 'role', 'active']
   const sets = []
   const params = []
@@ -75,8 +95,12 @@ employeesRouter.post('/:id/reset-password', requireRole('admin'), (req, res) => 
   if (password.length < 8) {
     return res.status(400).json({ error: 'Password must be at least 8 characters' })
   }
-  const info = db.prepare('UPDATE employees SET password_hash = ? WHERE id = ?')
+  const target = db.prepare('SELECT id, role FROM employees WHERE id = ?').get(req.params.id)
+  if (!target) return res.status(404).json({ error: 'Employee not found' })
+  if (!canAdminister(req.user, target)) {
+    return res.status(403).json({ error: 'Only a higher-ranked admin can reset this password' })
+  }
+  db.prepare('UPDATE employees SET password_hash = ? WHERE id = ?')
     .run(bcrypt.hashSync(password, 10), req.params.id)
-  if (!info.changes) return res.status(404).json({ error: 'Employee not found' })
   res.json({ ok: true })
 })

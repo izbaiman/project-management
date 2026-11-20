@@ -10,6 +10,9 @@ import { employeesRouter } from './routes/employees.js'
 import { projectsRouter, columnsRouter } from './routes/projects.js'
 import { tasksRouter } from './routes/tasks.js'
 import { sprintsRouter } from './routes/sprints.js'
+import { evaluationsRouter } from './routes/evaluations.js'
+import { teamsRouter } from './routes/teams.js'
+import { ensureSuperAdmin } from './roles.js'
 import { seed } from './seed.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -21,6 +24,7 @@ const HOST = process.env.HOST || '0.0.0.0'
 
 // First run on a fresh clone: import the employee CSV automatically.
 seed({ verbose: false })
+ensureSuperAdmin()
 
 const app = express()
 
@@ -54,6 +58,8 @@ app.use('/api/projects', requireAuth, projectsRouter)
 app.use('/api/columns', requireAuth, columnsRouter)
 app.use('/api/tasks', requireAuth, tasksRouter)
 app.use('/api/sprints', requireAuth, sprintsRouter)
+app.use('/api/evaluations', requireAuth, evaluationsRouter)
+app.use('/api/teams', requireAuth, teamsRouter)
 
 /** Dashboard rollup for the landing screen. */
 app.get('/api/stats', requireAuth, (req, res) => {

@@ -1,7 +1,7 @@
 import { useDndContext } from '@dnd-kit/core'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Avatar, PriorityIcon, TypeIcon } from './ui.jsx'
+import { Avatar, Icon, PriorityIcon, TypeIcon } from './ui.jsx'
 
 /** True while an employee is being dragged over this particular card. */
 function useAssignTarget(dndId) {
@@ -20,8 +20,8 @@ export function TaskCardBody({ task }) {
         <PriorityIcon priority={task.priority} />
         <div className="task-meta-spacer" />
         {task.comment_count > 0 && (
-          <span className="tiny dim" title={`${task.comment_count} comments`}>
-            💬 {task.comment_count}
+          <span className="task-comments" title={`${task.comment_count} comments`}>
+            <Icon name="message" size={13} /> {task.comment_count}
           </span>
         )}
         {task.story_points != null && <span className="task-points">{task.story_points}</span>}
@@ -50,7 +50,7 @@ export function TaskCard({ task, columnId, onOpen }) {
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition }}
-      className={`task-card${isDragging ? ' dragging' : ''}${isAssignTarget ? ' assign-target' : ''}`}
+      className={`task-card prio-edge-${task.priority}${isDragging ? ' dragging' : ''}${isAssignTarget ? ' assign-target' : ''}`}
       onClick={() => onOpen(task)}
       {...listeners}
       {...attributes}

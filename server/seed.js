@@ -59,9 +59,10 @@ function cleanTitle(raw) {
   return v.charAt(0).toUpperCase() + v.slice(1)
 }
 
-/** Team leads / heads become managers; the Management dept becomes admins. */
+/** The CEO is super admin; Management and heads are admins; team leads are managers. */
 function deriveRole(title, dept) {
   const t = (title || '').toLowerCase()
+  if (/ceo/.test(t)) return 'super_admin'
   if (dept === 'Management' || /\b(ceo|coo|director|head of)\b/.test(t)) return 'admin'
   if (/\b(team lead|team leader|lead|manager|hod|supervisor)\b/.test(t)) return 'manager'
   return 'member'
@@ -92,7 +93,7 @@ export function seed({ force = false, verbose = true } = {}) {
 
   if (force) {
     log('Clearing existing data...')
-    for (const t of ['activity', 'comments', 'tasks', 'sprints', 'board_columns', 'projects', 'employees']) {
+    for (const t of ['kpis', 'evaluations', 'activity', 'comments', 'tasks', 'sprints', 'board_columns', 'projects', 'teams', 'employees']) {
       db.exec(`DELETE FROM ${t}`)
     }
     db.exec(`DELETE FROM sqlite_sequence WHERE name IN
@@ -166,7 +167,7 @@ export function seed({ force = false, verbose = true } = {}) {
     VALUES (?, ?, ?, ?, ?)`)
   const findLead = db.prepare(`
     SELECT id FROM employees WHERE department = ?
-    ORDER BY CASE role WHEN 'admin' THEN 0 WHEN 'manager' THEN 1 ELSE 2 END, full_name
+    ORDER BY CASE role WHEN 'super_admin' THEN 0 WHEN 'admin' THEN 0 WHEN 'manager' THEN 1 ELSE 2 END, full_name
     LIMIT 1`)
 
   const usedKeys = new Set()

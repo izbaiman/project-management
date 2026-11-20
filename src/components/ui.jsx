@@ -1,5 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { Icon } from './icons.jsx'
+
+export { Icon }
 
 export function initials(name) {
   if (!name) return '?'
@@ -26,19 +29,37 @@ export function Avatar({ name, color, size = 'sm', title }) {
   )
 }
 
-const TYPE_ICON = { task: '🔵', bug: '🔴', story: '🟢', epic: '🟣' }
 export const TASK_TYPES = ['task', 'bug', 'story', 'epic']
 export const PRIORITIES = ['highest', 'high', 'medium', 'low', 'lowest']
-const PRIORITY_ICON = { highest: '⏫', high: '🔺', medium: '🔸', low: '🔻', lowest: '⏬' }
+const PRIORITY_ICON = {
+  highest: 'prioHighest', high: 'prioHigh', medium: 'prioMedium', low: 'prioLow', lowest: 'prioLowest',
+}
 
 export function TypeIcon({ type }) {
-  return <span className="task-type" title={type}>{TYPE_ICON[type] || TYPE_ICON.task}</span>
+  const t = TASK_TYPES.includes(type) ? type : 'task'
+  return (
+    <span className={`type-icon type-${t}`} title={t}>
+      <Icon name={t} size={12} strokeWidth={2.4} />
+    </span>
+  )
 }
 
 export function PriorityIcon({ priority }) {
+  const p = PRIORITY_ICON[priority] ? priority : 'medium'
   return (
-    <span className={`task-type prio-${priority}`} title={`${priority} priority`}>
-      {PRIORITY_ICON[priority] || PRIORITY_ICON.medium}
+    <span className={`prio-icon prio-${p}`} title={`${p} priority`}>
+      <Icon name={PRIORITY_ICON[p]} size={14} strokeWidth={2.4} />
+    </span>
+  )
+}
+
+const ROLE_NAMES = { member: 'Member', manager: 'Manager', admin: 'Admin', super_admin: 'Super admin' }
+
+export function RoleBadge({ role }) {
+  return (
+    <span className={`badge role-badge role-${role}`}>
+      {role !== 'member' && <Icon name={role === 'manager' ? 'users' : 'shield'} size={11} strokeWidth={2.4} />}
+      {ROLE_NAMES[role] || role}
     </span>
   )
 }
@@ -64,7 +85,9 @@ export function Modal({ title, onClose, children, footer, wide }) {
         <div className="modal-head">
           {typeof title === 'string' ? <h2>{title}</h2> : title}
           <div className="spacer" />
-          <button className="btn btn-ghost btn-icon" onClick={onClose} aria-label="Close">✕</button>
+          <button className="btn btn-ghost btn-icon" onClick={onClose} aria-label="Close">
+            <Icon name="x" size={18} />
+          </button>
         </div>
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-foot">{footer}</div>}

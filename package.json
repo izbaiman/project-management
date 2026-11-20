@@ -10,6 +10,7 @@
     "dev:api": "node server/index.js",
     "dev:web": "vite",
     "seed": "node server/seed.js",
+    "set-role": "node server/set-role.js",
     "seed:force": "node server/seed.js --force",
     "demo": "node server/demo.js",
     "build": "vite build",

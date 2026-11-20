@@ -10,6 +10,8 @@ import { Dashboard } from './pages/Dashboard.jsx'
 import { Board } from './pages/Board.jsx'
 import { Backlog } from './pages/Backlog.jsx'
 import { Team } from './pages/Team.jsx'
+import { Evaluations } from './pages/Evaluations.jsx'
+import { Teams } from './pages/Teams.jsx'
 
 function Root() {
   const { user, loading } = useAuth()
@@ -22,6 +24,8 @@ function Root() {
       <Route element={<AppShell />}>
         <Route index element={<Dashboard />} />
         <Route path="team" element={<Team />} />
+        <Route path="teams" element={<Teams />} />
+        <Route path="evaluations" element={<Evaluations />} />
         <Route path="projects/:projectId/board" element={<Board />} />
         <Route path="projects/:projectId/backlog" element={<Backlog />} />
       </Route>

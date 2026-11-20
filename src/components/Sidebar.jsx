@@ -1,11 +1,11 @@
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { NavLink, useParams } from 'react-router-dom'
-import { useState } from 'react'
+import { NavLink, useLocation, useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { api } from '../api.js'
 import { useAuth } from '../context/AuthContext.jsx'
-import { useToast } from './ui.jsx'
+import { Icon, useToast } from './ui.jsx'
 import { neighboursAt, numericId, useDragSensors } from '../dnd.js'
 
 function ProjectRow({ project, canManage }) {
@@ -35,7 +35,7 @@ function ProjectRow({ project, canManage }) {
             {...listeners}
             {...attributes}
           >
-            ⠿
+            <Icon name="grip" size={14} />
           </span>
         )}
         <span className="project-dot" style={{ background: project.color }} />
@@ -46,9 +46,13 @@ function ProjectRow({ project, canManage }) {
   )
 }
 
-export function Sidebar({ projects, setProjects, onNewProject }) {
+export function Sidebar({ projects, setProjects, onNewProject, open = false, onClose = () => {} }) {
   const { canManage } = useAuth()
   const { projectId } = useParams()
+  const { pathname } = useLocation()
+
+  // On small screens the sidebar is a drawer: close it whenever the page changes.
+  useEffect(() => { onClose() }, [pathname]) // eslint-disable-line react-hooks/exhaustive-deps
   const toast = useToast()
   const sensors = useDragSensors()
   const [dragging, setDragging] = useState(null)
@@ -78,39 +82,52 @@ export function Sidebar({ projects, setProjects, onNewProject }) {
     }
   }
 
+  const current = projectId ? projects.find(p => String(p.id) === String(projectId)) : null
+  const navClass = ({ isActive }) => `nav-item${isActive ? ' active' : ''}`
+
   return (
-    <nav className="sidebar">
+    <>
+    {open && <div className="sidebar-backdrop" onClick={onClose} aria-hidden="true" />}
+    <nav className={`sidebar${open ? ' open' : ''}`} aria-label="Main navigation">
       <div className="sidebar-section">
-        <NavLink to="/" end className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
-          <span>🏠</span> Dashboard
+        <NavLink to="/" end className={navClass}>
+          <Icon name="home" size={17} /> Dashboard
         </NavLink>
-        <NavLink to="/team" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
-          <span>👥</span> Team directory
+        <NavLink to="/team" className={navClass}>
+          <Icon name="users" size={17} /> Team directory
         </NavLink>
-        {projectId && (
-          <>
-            <NavLink
-              to={`/projects/${projectId}/board`}
-              className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
-            >
-              <span>📋</span> Board
-            </NavLink>
-            <NavLink
-              to={`/projects/${projectId}/backlog`}
-              className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
-            >
-              <span>🗂️</span> Backlog
-            </NavLink>
-          </>
-        )}
+        <NavLink to="/teams" className={navClass}>
+          <Icon name="org" size={17} /> Teams
+        </NavLink>
+        <NavLink to="/evaluations" className={navClass}>
+          <Icon name="award" size={17} /> Evaluations
+        </NavLink>
       </div>
+
+      {projectId && (
+        <div className="sidebar-section">
+          <div className="sidebar-title">
+            <span className="row" style={{ gap: 6, minWidth: 0 }}>
+              {current && <span className="project-dot" style={{ background: current.color }} />}
+              <span className="truncate">{current?.name || 'Project'}</span>
+            </span>
+          </div>
+          <NavLink to={`/projects/${projectId}/board`} className={navClass}>
+            <Icon name="board" size={17} /> Board
+          </NavLink>
+          <NavLink to={`/projects/${projectId}/backlog`} className={navClass}>
+            <Icon name="list" size={17} /> Backlog
+          </NavLink>
+        </div>
+      )}
 
       <div className="sidebar-section">
         <div className="sidebar-title">
           <span>Projects</span>
           {canManage && (
-            <button className="btn btn-ghost btn-sm" onClick={onNewProject} title="New project">
-              ＋
+            <button className="btn btn-ghost btn-icon btn-xs" onClick={onNewProject}
+              title="New project" aria-label="New project">
+              <Icon name="plus" size={15} />
             </button>
           )}
         </div>
@@ -146,5 +163,6 @@ export function Sidebar({ projects, setProjects, onNewProject }) {
         {projects.length === 0 && <p className="hint" style={{ padding: '6px 8px' }}>No projects yet.</p>}
       </div>
     </nav>
+    </>
   )
 }

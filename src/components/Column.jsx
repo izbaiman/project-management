@@ -2,6 +2,7 @@ import { useDndContext, useDroppable } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { TaskCard } from './TaskCard.jsx'
+import { Icon } from './ui.jsx'
 
 /** A board column: sortable itself, and a drop zone for task cards. */
 export function Column({ column, tasks, onOpenTask, onAddTask, onRename, canManage }) {
@@ -35,9 +36,12 @@ export function Column({ column, tasks, onOpenTask, onAddTask, onRename, canMana
       <div className="column-head">
         {canManage && (
           <span className="drag-handle" title="Drag to reorder column" {...listeners} {...attributes}>
-            ⠿
+            <Icon name="grip" size={14} />
           </span>
         )}
+        {column.is_done
+          ? <Icon name="checkCircle" size={15} className="column-done-icon" />
+          : <span className="column-status-dot" />}
         <span
           className="column-title"
           onDoubleClick={() => canManage && onRename(column)}
@@ -66,8 +70,8 @@ export function Column({ column, tasks, onOpenTask, onAddTask, onRename, canMana
       </div>
 
       <div className="column-foot">
-        <button className="btn btn-ghost btn-sm" onClick={() => onAddTask(column.id)}>
-          ＋ Create
+        <button className="btn btn-ghost btn-sm column-add" onClick={() => onAddTask(column.id)}>
+          <Icon name="plus" size={14} /> Create task
         </button>
       </div>
     </div>

@@ -3,6 +3,11 @@ import { api, getToken, setToken, onUnauthorized } from '../api.js'
 
 const AuthContext = createContext(null)
 
+/** Mirrors server/roles.js: each role can do everything the ones below it can. */
+export const ROLES = ['member', 'manager', 'admin', 'super_admin']
+export const ROLE_RANK = Object.fromEntries(ROLES.map((r, i) => [r, i]))
+export const ROLE_LABEL = { member: 'Member', manager: 'Manager', admin: 'Admin', super_admin: 'Super admin' }
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -32,10 +37,12 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
-  const canManage = user?.role === 'admin' || user?.role === 'manager'
+  const rank = ROLE_RANK[user?.role] ?? 0
+  const canManage = rank >= ROLE_RANK.manager
+  const isAdmin = rank >= ROLE_RANK.admin
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, canManage }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, canManage, isAdmin, rank }}>
       {children}
     </AuthContext.Provider>
   )
